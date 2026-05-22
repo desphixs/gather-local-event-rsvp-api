@@ -6,8 +6,10 @@ from rest_framework.response import Response
 from rest_framework import status
 # Import the standard Http404 exception helper from Django's HTTP module.
 from django.http import Http404
-# Import the Event model database table blueprint.
-from .models import Event
+# Import the IsAuthenticated permission class to secure specific views.
+from rest_framework.permissions import IsAuthenticated
+# Import the Event and RSVP models from models.py file.
+from .models import Event, RSVP
 # Import the EventSerializer to handle model-to-JSON translations.
 from .serializers import EventSerializer
 
@@ -157,4 +159,73 @@ class EventDetailAPIView(APIView):
         event.delete()
         
         # We return a response with an HTTP 204 No Content status, which means the deletion was highly successful!
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# The RSVPAPIView handles HTTP POST and HTTP DELETE requests to manage event RSVPs (joining and cancelling).
+# Think of this view like a secure digital signup sheet for an event:
+# - POST: Allows logged-in users to sign their names on the guestlist. If they are already signed up, they get blocked!
+# - DELETE: Allows logged-in users to scratch their names off the guestlist. If they weren't signed up, they get blocked!
+class RSVPAPIView(APIView):
+    
+    # We restrict access to this view using DRF permission_classes.
+    # Set to [IsAuthenticated] so ONLY logged-in users with a valid token can hit this desk.
+    permission_classes = [IsAuthenticated]
+
+    # Helper method to find a single event by ID.
+    def get_event(self, event_id):
+        try:
+            # Look up the event in our database table.
+            return Event.objects.get(pk=event_id)
+        except Event.DoesNotExist:
+            # If the event does not exist, raise an Http404 exception.
+            raise Http404
+
+    # POST method to join an event (submit an RSVP).
+    def post(self, request, event_id):
+        # We fetch the event from the database using our helper method.
+        event = self.get_event(event_id)
+        
+        # We query the RSVP table to check if this user has already signed up for this event.
+        # This checks if an RSVP row matches both the logged-in request.user and the event.
+        if RSVP.objects.filter(user=request.user, event=event).exists():
+            # If an entry exists, we block the request and return an HTTP 400 Bad Request status.
+            # This prevents duplicate RSVP signups at the database constraint level!
+            return Response(
+                {"detail": "You have already RSVP'd to this event."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # If no duplicate RSVP exists, we manually create a new RSVP record.
+        # This inserts a new row mapping our request.user to the selected event.
+        rsvp = RSVP.objects.create(user=request.user, event=event)
+        
+        # We return a friendly success message along with an HTTP 201 Created status.
+        return Response(
+            {"detail": "Successfully RSVP'd to the event!"},
+            status=status.HTTP_201_CREATED
+        )
+
+    # DELETE method to cancel an RSVP (leave an event).
+    def delete(self, request, event_id):
+        # We fetch the event from the database.
+        event = self.get_event(event_id)
+        
+        # We query the database to find the specific RSVP row matching this user and event.
+        # We use a try-except block to handle cases where the user tries to cancel an RSVP they never made!
+        try:
+            # Retrieve the specific RSVP record from our database table.
+            rsvp = RSVP.objects.get(user=request.user, event=event)
+        except RSVP.DoesNotExist:
+            # If no RSVP is found, we return a 400 Bad Request error.
+            # This informs the user they can't cancel a signup they never submitted in the first place!
+            return Response(
+                {"detail": "You have not RSVP'd to this event."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # If the RSVP record is found, we call .delete() to erase it permanently from the database table.
+        rsvp.delete()
+        
+        # We return a successful response with an HTTP 204 No Content status.
         return Response(status=status.HTTP_204_NO_CONTENT)
