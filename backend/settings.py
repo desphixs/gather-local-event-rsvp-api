@@ -49,6 +49,11 @@ INSTALLED_APPS = [
     # badges, and security clearance.
     'accounts',
     
+    # 'events' is the custom Django app we created to manage meetups and RSVPs.
+    # Think of it like a community events board where organizers can post details
+    # and attendees can sign up to join.
+    'events',
+    
     # 'rest_framework_simplejwt.token_blacklist' is our security revocation registry.
     # Think of it like a "revoked keycards list" at a high-security facility.
     # When a user logs out, their token is thrown into this blacklist database table
