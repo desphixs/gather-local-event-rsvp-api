@@ -1,10 +1,11 @@
-# Build Authify: A JWT Auth API
+# Build Gather: Local Event RSVP API
 
 ### Project Description
 
-You are going to build Authify, a small but powerful authentication API that other apps can plug into. Users can register, log in, and log out. When they log in, they get two tokens: an access token for making requests and a refresh token for getting a new access token when the old one expires.
 
-You will also build a few locked endpoints to prove your security works. If someone is not logged in, they should get blocked. If they are logged in, they should get through smoothly. No magic shortcuts. You will write the endpoints using APIView so you can see each step clearly.
+You are going to build Gather, an event hosting API where users can create local tech meetups and RSVP to attend them. Instead of building every single piece from scratch, you will start with a fully wired authentication template. Once your secure base is ready, you will build the Event and RSVP models. 
+
+Then, you will write custom API endpoints from scratch using raw APIViews. This will teach you exactly how to handle complex data relationships, attach logged in users to the events they create, and write strict security checks so nobody can delete an event except the person who organized it.
 
 ## Tech Stack
 
